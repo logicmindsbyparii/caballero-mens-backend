@@ -1,0 +1,37 @@
+[
+  {
+    "id": "user-1773649950668",
+    "name": "Mayur",
+    "email": "mayur@gmail.com",
+    "password": "Abcd123@",
+    "phone": "7894561233",
+    "role": "user",
+    "lastLogin": "2026-03-16T08:48:32.669Z"
+  },
+  {
+    "id": "user-1773650970267",
+    "name": "Devansh",
+    "email": "devanshparajapati99@gmail.com",
+    "password": "Abcde123@",
+    "phone": "8780873606",
+    "role": "user",
+    "lastLogin": "2026-03-17T11:44:45.721Z"
+  },
+  {
+    "id": "user-1775634685677",
+    "name": "Prajapati",
+    "email": "pati@gmail.com",
+    "password": "Abcd123@",
+    "phone": "4561237895",
+    "role": "user",
+    "lastLogin": "2026-04-08T11:03:50.914Z"
+  },
+  {
+    "id": "user-1779104193533",
+    "name": "Devansh",
+    "email": "aaa@gmail.com",
+    "password": "Abcd123@",
+    "phone": "8780873606",
+    "role": "user"
+  }
+]

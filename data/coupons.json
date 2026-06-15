@@ -1,0 +1,18 @@
+[
+  {
+    "id": "1773749002542",
+    "code": "GET60",
+    "discount": 40,
+    "type": "percentage",
+    "expiryDate": null,
+    "createdAt": "2026-03-17T12:03:22.542Z"
+  },
+  {
+    "id": "1773655653956",
+    "code": "SAVE20",
+    "discount": 20,
+    "type": "percentage",
+    "expiryDate": null,
+    "createdAt": "2026-03-16T10:07:33.956Z"
+  }
+]
