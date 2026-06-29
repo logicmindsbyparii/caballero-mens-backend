@@ -1,3 +1,5 @@
+
+
 // require('dotenv').config(); // Must be at the very top
 
 // const express = require('express');
@@ -36,7 +38,7 @@
 //     });
 //     console.log('✅ Razorpay initialized');
 //   } else {
-//     console.warn('⚠️ Razorpay keys missing – payment endpoints disabled');
+//     console.warn('⚠️ Razorpay keys missing – payment endpoints will run in MOCK mode');
 //   }
 // } catch (err) {
 //   console.error('❌ Failed to initialize Razorpay:', err.message);
@@ -288,74 +290,95 @@
 //   res.json({ success: true });
 // });
 
-// // ──────────────────────────────── RAZORPAY PAYMENT ROUTES ───────────────────
-// // (Only if razorpay initialized)
-// if (razorpay) {
-//   app.post('/api/create-order', async (req, res) => {
-//     try {
-//       const { amount, currency, receipt } = req.body;
-//       const options = {
-//         amount: amount * 100,
-//         currency: currency || 'INR',
-//         receipt: receipt || `receipt_${Date.now()}`,
-//       };
-//       const order = await razorpay.orders.create(options);
-//       res.status(200).json(order);
-//     } catch (error) {
-//       console.error('Create order error:', error);
-//       res.status(500).json({ error: 'Failed to create order' });
-//     }
-//   });
-
-//   app.post('/api/verify-payment', (req, res) => {
-//     try {
-//       const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
-//       const body = razorpay_order_id + '|' + razorpay_payment_id;
-//       const expectedSignature = crypto
-//         .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
-//         .update(body.toString())
-//         .digest('hex');
-//       if (expectedSignature === razorpay_signature) {
-//         // Update order status in your JSON if needed
-//         res.status(200).json({ success: true, message: 'Payment verified' });
-//       } else {
-//         res.status(400).json({ success: false, message: 'Invalid signature' });
-//       }
-//     } catch (error) {
-//       console.error('Verification error:', error);
-//       res.status(500).json({ error: 'Internal server error' });
-//     }
-//   });
-
-//   app.post('/api/payment/webhook', express.raw({ type: 'application/json' }), (req, res) => {
-//     try {
-//       const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
-//       const signature = req.headers['x-razorpay-signature'];
-//       const expectedSignature = crypto.createHmac('sha256', webhookSecret).update(req.body).digest('hex');
-//       if (expectedSignature === signature) {
-//         const event = JSON.parse(req.body);
-//         if (event.event === 'payment.captured') {
-//           console.log(`Payment captured for order: ${event.payload.payment.entity.order_id}`);
-//         }
-//         res.status(200).send('Webhook received');
-//       } else {
-//         res.status(400).send('Invalid signature');
-//       }
-//     } catch (error) {
-//       console.error('Webhook error:', error);
-//       res.status(500).send('Internal server error');
-//     }
-//   });
+// // ──────────────────────────────── MOCK / REAL PAYMENT ROUTES ─────────────────
+// // Determine if we are in mock mode (no valid Razorpay keys)
+// const mockMode = !process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET;
+// if (mockMode) {
+//   console.log('🔧 Running in MOCK PAYMENT mode – no real charges will be made');
 // } else {
-//   console.warn('⚠️ Razorpay not configured – payment endpoints disabled');
-//   // Dummy endpoints to avoid frontend errors (optional)
-//   app.post('/api/create-order', (req, res) => {
-//     res.status(503).json({ error: 'Payment service unavailable. Please add Razorpay keys.' });
-//   });
-//   app.post('/api/verify-payment', (req, res) => {
-//     res.status(503).json({ error: 'Payment service unavailable' });
-//   });
+//   console.log('✅ Real Razorpay mode – payments will be processed');
 // }
+
+// // Create order endpoint
+// app.post('/api/create-order', async (req, res) => {
+//   if (mockMode) {
+//     const { amount, currency } = req.body;
+//     console.log(`[MOCK] Creating order for ₹${amount}`);
+//     return res.json({
+//       id: `mock_order_${Date.now()}`,
+//       amount: amount * 100,
+//       currency: currency || 'INR',
+//       receipt: `receipt_${Date.now()}`
+//     });
+//   }
+
+//   // Real Razorpay order creation
+//   try {
+//     const { amount, currency, receipt } = req.body;
+//     const options = {
+//       amount: amount * 100,
+//       currency: currency || 'INR',
+//       receipt: receipt || `receipt_${Date.now()}`,
+//     };
+//     const order = await razorpay.orders.create(options);
+//     res.json(order);
+//   } catch (error) {
+//     console.error('Create order error:', error);
+//     res.status(500).json({ error: 'Failed to create order' });
+//   }
+// });
+
+// // Verify payment endpoint
+// app.post('/api/verify-payment', (req, res) => {
+//   if (mockMode) {
+//     console.log('[MOCK] Verifying payment – always successful');
+//     return res.json({ success: true, message: 'Mock payment verified' });
+//   }
+
+//   // Real verification logic
+//   try {
+//     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+//     const body = razorpay_order_id + '|' + razorpay_payment_id;
+//     const expectedSignature = crypto
+//       .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+//       .update(body.toString())
+//       .digest('hex');
+//     if (expectedSignature === razorpay_signature) {
+//       res.json({ success: true, message: 'Payment verified' });
+//     } else {
+//       res.status(400).json({ success: false, message: 'Invalid signature' });
+//     }
+//   } catch (error) {
+//     console.error('Verification error:', error);
+//     res.status(500).json({ error: 'Internal server error' });
+//   }
+// });
+
+// // Webhook endpoint (real only, but we can keep it available)
+// app.post('/api/payment/webhook', express.raw({ type: 'application/json' }), (req, res) => {
+//   if (mockMode) {
+//     console.log('[MOCK] Webhook received – ignoring');
+//     return res.status(200).send('Mock webhook received');
+//   }
+
+//   try {
+//     const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
+//     const signature = req.headers['x-razorpay-signature'];
+//     const expectedSignature = crypto.createHmac('sha256', webhookSecret).update(req.body).digest('hex');
+//     if (expectedSignature === signature) {
+//       const event = JSON.parse(req.body);
+//       if (event.event === 'payment.captured') {
+//         console.log(`Payment captured for order: ${event.payload.payment.entity.order_id}`);
+//       }
+//       res.status(200).send('Webhook received');
+//     } else {
+//       res.status(400).send('Invalid signature');
+//     }
+//   } catch (error) {
+//     console.error('Webhook error:', error);
+//     res.status(500).send('Internal server error');
+//   }
+// });
 
 // // ──────────────────────────────── HEALTH CHECK ──────────────────────────────
 // app.get('/api/health', (req, res) => {
@@ -366,6 +389,7 @@
 // app.listen(PORT, () => {
 //   console.log(`\n🤠 Caballero Backend running at http://localhost:${PORT}`);
 // });
+
 
 
 require('dotenv').config(); // Must be at the very top
@@ -621,6 +645,11 @@ app.delete('/api/coupons/:id', (req, res) => {
 // ──────────────────────────────── ORDER ROUTES ───────────────────────────────
 app.get('/api/orders', (req, res) => {
   res.json({ success: true, data: orders });
+});
+
+app.get('/api/users/:userId/orders', (req, res) => {
+  const userOrders = orders.filter(o => o.userId === req.params.userId);
+  res.json({ success: true, data: userOrders });
 });
 
 app.post('/api/orders', (req, res) => {
